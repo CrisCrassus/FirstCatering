@@ -5,9 +5,10 @@ This repository consists of an API made using Laravel 10.
 
 ## Packages & Versions
 
-- **Laravel 10.2**
-- **Tailwind 3.2**
-- **Vue JS 3.4**
+- **Laravel 10.9.0**
+- **Tailwind 3.3.2**
+- **Vue JS 3.2.47**
+- **Vite 4.3.3**
 
 ## Setup
 
