@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 trait HasIdentifier
 {
-
     public function generateIdentifier(Model $model, int $size = 16, $limitSelection = false)
     {
         if ($limitSelection) {

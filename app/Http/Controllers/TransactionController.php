@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ResponseStatus;
+use App\Enums\TransactionTypes;
 use App\Models\Order;
 use App\Models\Transaction;
 use App\Models\User;
@@ -15,7 +16,6 @@ class TransactionController extends Controller
         $request->validate([
             'user_id' => 'required|integer',
             'order_id' => 'required|integer',
-            'transaction_type' => 'required|string'
         ]);
 
         $transaction = new Transaction();
@@ -23,26 +23,31 @@ class TransactionController extends Controller
         try {
 
             $user = User::find($request['user_id']);
+            $order = Order::find($request['order_id']);
 
-            $transaction->transaction_type = $request['transaction_type'];
-            $transaction->amount = Order::find($request['order_id'])->total_price;
-            $transaction->order_id = $request['order_id'];
-            $transaction->user_id = $request['user_id'];
+            if($user->balance >= $order->total_price) {
+                $transaction->transaction_type = TransactionTypes::PURCHASE->value;
+                $transaction->amount = $order->total_price;
+                $transaction->order_id = $request['order_id'];
+                $transaction->user_id = $request['user_id'];
 
-            $transaction->save();
+                $transaction->save();
 
-            $transactionProcess = $user->processTransaction($transaction);
+                $transactionProcess = $user->processTransaction($transaction, $order);
 
-            if($transactionProcess['status'] == ResponseStatus::SUCCESS) {
-                return ['status' => ResponseStatus::SUCCESS, 'message' => 'Transaction Complete | ' . $transactionProcess['message'], 'data' => $transaction];
-            }
+                if($transactionProcess['status'] == ResponseStatus::SUCCESS) {
+                    return ['status' => ResponseStatus::SUCCESS, 'message' => 'Transaction Complete | ' . $transactionProcess['message'], 'data' => $transaction];
+                }
 
-            if($transactionProcess['status'] == ResponseStatus::FAILED) {
-                return ['status' => ResponseStatus::FAILED, 'message' => 'Transaction Failed | ' . $transactionProcess['message']];
-            }
+                if($transactionProcess['status'] == ResponseStatus::FAILED) {
+                    return ['status' => ResponseStatus::FAILED, 'message' => 'Transaction Failed | ' . $transactionProcess['message']];
+                }
 
-            if($transactionProcess['status'] == ResponseStatus::ERROR) {
-                return ['status' => ResponseStatus::ERROR, 'location' => $transactionProcess['location'], 'message' => 'Transaction Failed | ' . $transactionProcess['message']];
+                if($transactionProcess['status'] == ResponseStatus::ERROR) {
+                    return ['status' => ResponseStatus::ERROR, 'location' => $transactionProcess['location'], 'message' => 'Transaction Failed | ' . $transactionProcess['message']];
+                }
+            } else {
+                return ['status' => ResponseStatus::FAILED, 'message' => 'Transaction Failed | You do not have sufficient balance to make this transactions'];
             }
 
         } catch(Throwable $error) {
@@ -54,7 +59,6 @@ class TransactionController extends Controller
         $request->validate([
             'user_id' => 'required|integer',
             'amount' => 'required',
-            'transaction_type' => 'required|string'
         ]);
 
         $transaction = new Transaction();
@@ -63,7 +67,7 @@ class TransactionController extends Controller
 
             $user = User::find($request['user_id']);
 
-            $transaction->transaction_type = $request['transaction_type'];
+            $transaction->transaction_type = TransactionTypes::TOPUP->value;
             $transaction->amount = $request['amount'];
             $transaction->user_id = $request['user_id'];
 

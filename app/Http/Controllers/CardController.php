@@ -33,7 +33,7 @@ class CardController extends Controller
                 return ['status' => ResponseStatus::FAILED, 'message' => 'You do not have the required permissions to generate new cards'];
            }
         } catch(Throwable $error) {
-            return ['status' => ResponseStatus::ERROR, 'message' => $error->getMessage()];
+            return ['status' => ResponseStatus::ERROR, 'location' => 'App\Http\Controller\CardController@generateNewCard', 'message' => $error->getMessage()];
         }
     }
 }

@@ -4,7 +4,9 @@ namespace Database\Seeders;
 
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
+use App\Enums\CardTypes;
 use App\Enums\Roles;
+use App\Enums\TransactionTypes;
 use App\Models\Card;
 use App\Models\CardType;
 use App\Models\Company;
@@ -25,19 +27,19 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         TransactionType::create([
-            'type' => 'purchase',
+            'type' => TransactionTypes::PURCHASE,
         ]);
 
         TransactionType::create([
-            'type' => 'topup',
+            'type' => TransactionTypes::TOPUP,
         ]);
 
         CardType::create([
-            'type' => 'existing-employee',
+            'type' => CardTypes::EXISTING,
         ]);
 
         CardType::create([
-            'type' => 'standard',
+            'type' => CardTypes::STANDARD,
         ]);
 
         Role::create([

@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Enums\ResponseStatus;
+use App\Enums\TransactionTypes;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -71,7 +72,7 @@ class User extends Authenticatable
     {
         try {
             if ($pin === $this->pin) {
-                return ['status' => ResponseStatus::SUCCESS, 'message' => 'PIN Approved', 'data' => true];
+                return ['status' => ResponseStatus::SUCCESS, 'message' => 'PIN Approved', 'token' => $this->createToken($this->name())->plainTextToken, 'data' => true];
             } else {
                 return ['status' => ResponseStatus::FAILED, 'message' => 'PIN Incorrect', 'data' => false];
             }
@@ -80,26 +81,20 @@ class User extends Authenticatable
         }
     }
 
-    public function processTransaction(Transaction $transaction)
+    public function processTransaction(Transaction $transaction, Order $order = null): array
     {
         try {
-
-            $t_type = TransactionType::find($transaction->transaction_type);
-
-            if ($t_type->type == 'topup') {
+            if ($transaction->transactionType()->first()->type == TransactionTypes::TOPUP->value) {
                 $this->balance += $transaction->amount;
                 $this->save();
                 $transaction->completeTransaction();
                 return ['status' => ResponseStatus::SUCCESS, 'message' => $this->name() . ' | Your balance has been updated - you have added £' . $transaction->amount];
             }
 
-            if ($t_type->type == 'purchase') {
+            if ($transaction->transactionType()->first()->type == TransactionTypes::PURCHASE->value) {
+                if ($order) {
+                    $quantities = $order->quantify()['data'];
 
-                $order = Order::find($transaction->order()->first()->id);
-
-                $quantities = $order->quantify()['data'];
-
-                if ($this->balance >= $transaction->amount) {
                     $this->balance -= $transaction->amount;
                     $this->save();
                     foreach ($quantities as $prod => $quantity) {
@@ -108,9 +103,8 @@ class User extends Authenticatable
                     $transaction->completeTransaction();
                     $order->completeOrder();
                     return ['status' => ResponseStatus::SUCCESS, 'message' => 'Your balance has been updated - you have spent £' . $transaction->amount];
-                }
-                if ($this->balance < $transaction->amount) {
-                    return ['status' => ResponseStatus::FAILED, 'message' => 'You have an insufficient balance. Please make a topup'];
+                } else {
+                    return ['status' => ResponseStatus::FAILED, 'message' => 'An order has not been provided. Please provide an order'];
                 }
             }
         } catch (Throwable $error) {

@@ -16,8 +16,6 @@ use Throwable;
 class AuthController extends Controller
 {
 
-
-
     public function create(Request $request)
     {
         try {
@@ -85,7 +83,7 @@ class AuthController extends Controller
             }
 
             if($user) {
-                return ['status' => ResponseStatus::SUCCESS, 'message' => 'User located', 'token' => $user->createToken($card->identifier)->plainTextToken, 'data' => $user];
+                return ['status' => ResponseStatus::SUCCESS, 'message' => 'User located', 'data' => $user];
             }
 
         } catch (Throwable $error) {
@@ -109,7 +107,7 @@ class AuthController extends Controller
 
             $rs = $user->validatePIN($request->pin);
 
-            return ['status' => $rs['status'], 'message' => $rs['message'], 'data' => $rs['data']];
+            return ['status' => $rs['status'], 'message' => $rs['message'], 'token' => isset($rs['token']) ? $rs['token'] : null, 'data' => $rs['data']];
 
         } catch (Throwable $error) {
             return ['status' => ResponseStatus::ERROR, 'location' => 'App\Http\Controllers\API\AuthController@pinVerification', 'message' => $error->getMessage()];
@@ -137,8 +135,6 @@ class AuthController extends Controller
             return ['status' => ResponseStatus::ERROR, 'location' => 'App\Http\Controllers\API\AuthController@logout', 'message' => $error->getMessage()];
         }
     }
-
-
 
     public function standardLogin(Request $request)
     {

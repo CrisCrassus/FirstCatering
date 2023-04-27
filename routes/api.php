@@ -21,11 +21,12 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/card-sign-in', [AuthController::class, 'login']);
 Route::post('/standard-sign-in', [AuthController::class, 'standardLogin']);
+Route::post('/pin-verification', [AuthController::class, 'pinVerification']);
+
 
 Route::middleware('auth:sanctum')->group(function () {
     //Auth
     Route::post('/sign-out', [AuthController::class, 'logout']);
-    Route::post('/pin-verification', [AuthController::class, 'pinVerification']);
 
     //Card
     Route::post('/generate-new-card', [CardController::class, 'generateNewCard']);
