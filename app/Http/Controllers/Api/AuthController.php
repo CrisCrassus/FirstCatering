@@ -7,7 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Card;
-use Carbon\Carbon;
+use App\Traits\HasResponseStatus;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -16,12 +16,12 @@ use Throwable;
 class AuthController extends Controller
 {
 
+    use HasResponseStatus;
+
     public function create(Request $request)
     {
         try {
-            //Validated
-            $validateUser = Validator::make($request->all(),
-            [
+            $request->validate([
                 'first_name' => 'required',
                 'last_name' => 'required',
                 'email' => 'required|email|unique:users,email',
@@ -29,14 +29,6 @@ class AuthController extends Controller
                 'mobile' => 'required',
                 'company_id' => 'required|integer',
             ]);
-
-            if($validateUser->fails()){
-                return response()->json([
-                    'status' => false,
-                    'message' => 'validation error',
-                    'errors' => $validateUser->errors()
-                ], 401);
-            }
 
             $user = User::create([
                 'first_name' => $request->first_name,
@@ -49,17 +41,10 @@ class AuthController extends Controller
                 'pin' => mt_rand(1000, 9999),
             ]);
 
-            return response()->json([
-                'status' => ResponseStatus::SUCCESS,
-                'message' => 'User Created Successfully',
-                'token' => $user->createToken("API TOKEN")->plainTextToken
-            ], 200);
+            return $this->responseStatus(ResponseStatus::SUCCESS, 'User Created Successfully', ['token' => $user->createToken("API TOKEN")->plainTextToken]);
 
         } catch (\Throwable $error) {
-            return response()->json([
-                'status' => ResponseStatus::ERROR,
-                'message' => $error->getMessage()
-            ], 500);
+            return $this->responseStatus(ResponseStatus::ERROR, $error->getMessage());
         }
     }
 
@@ -73,21 +58,22 @@ class AuthController extends Controller
             $card = Card::where('identifier', $request['identifier'])->first();
 
             if(!$card) {
-                return ['status' => ResponseStatus::FAILED, 'message' => 'Unable to locate card ' . $request['identifier']];
+                return $this->responseStatus(ResponseStatus::FAILED, 'Unable to locate card');
             }
 
             $user = $card->user()->first('id');
 
             if(!$user) {
-                return ['status' => ResponseStatus::FAILED, 'message' => 'Unable to locate user for card ' . $card->identifier];
+                return $this->responseStatus(ResponseStatus::FAILED, 'Unable to locate user for card ' . $card->identifier);
             }
 
             if($user) {
-                return ['status' => ResponseStatus::SUCCESS, 'message' => 'User located', 'data' => $user];
+                return $this->responseStatus(ResponseStatus::SUCCESS, 'User located', $user);
+                // return ['status' => ResponseStatus::SUCCESS, 'message' => 'User located', 'data' => $user];
             }
 
         } catch (Throwable $error) {
-            return ['status' => ResponseStatus::ERROR, 'location' => 'App\Http\Controllers\API\AuthController@login', 'message' => $error->getMessage()];
+            return $this->responseStatus(ResponseStatus::ERROR, $error->getMessage(), ['location' => 'App\Http\Controllers\API\AuthController@login']);
         }
     }
 

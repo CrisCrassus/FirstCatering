@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>{{env('APP_NAME')}} | New Template</title>
+    <title>{{env('APP_NAME')}} | API</title>
 
     @vite('resources/css/app.css')
     <!-- Fonts -->
