@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Route;
 // });
 
 Route::post('/card-sign-in', [AuthController::class, 'login']);
+Route::post('/create-user', [AuthController::class, 'create']);
 Route::post('/standard-sign-in', [AuthController::class, 'standardLogin']);
 Route::post('/pin-verification', [AuthController::class, 'pinVerification']);
 

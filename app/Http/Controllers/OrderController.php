@@ -4,14 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Enums\ResponseStatus;
 use App\Models\Order;
+use App\Models\Product;
 use App\Models\Transaction;
+use App\Models\User;
+use App\Traits\HasResponseStatus;
 use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Throwable;
 
 class OrderController extends Controller
 {
-    public function create(Request $request): array
+
+    use HasResponseStatus;
+
+    public function create(Request $request): JsonResponse
     {
         $request->validate([
             'products' => 'required|array',
@@ -21,8 +28,18 @@ class OrderController extends Controller
         try {
             $order = new Order();
 
+            if (!User::find($request['user_id'])) {
+                return $this->responseStatus(ResponseStatus::FAILED, 'Unable to locate user');
+            }
+
             $order->user_id = $request['user_id'];
             $order->save();
+
+            foreach ($request['products'] as $product) {
+                if (!Product::find($product)) {
+                    return $this->responseStatus(ResponseStatus::FAILED, 'Unable to locate product');
+                }
+            }
 
             $order->products()->sync($request['products']);
             $order->save();
@@ -32,53 +49,53 @@ class OrderController extends Controller
 
             $order->save();
 
-            return ['status' => ResponseStatus::SUCCESS, 'message' => 'Order successfully created', 'data' => $order];
+            return $this->responseStatus(ResponseStatus::SUCCESS, 'Order ' . $order->id . ' successfully created', $order);
         } catch (Throwable $error) {
-            return ['status' => ResponseStatus::ERROR, 'message' => 'Order could not be made at this time', 'error' => $error->getMessage()];
+            return $this->responseStatus(ResponseStatus::ERROR, $error->getMessage(), ['location' => 'App\Models\Controllers\OrderController@create']);
         }
     }
 
-    public function index(): array
+    public function index(): JsonResponse
     {
         try {
             $orders = Order::get();
-            return ['status' => ResponseStatus::SUCCESS, 'message' => 'Orders successfully found', 'data' => $orders];
+            return $this->responseStatus(ResponseStatus::SUCCESS, 'Orders successfully found', $orders);
         } catch (Throwable $error) {
-            return ['status' => ResponseStatus::ERROR, 'message' => 'Orders could not be retrieved at this time', 'error' => $error->getMessage()];
+            return $this->responseStatus(ResponseStatus::ERROR, $error->getMessage());
         }
     }
 
-    public function indexByUser($id): array
+    public function indexByUser($id): JsonResponse
     {
         try {
             $orders = Order::where('user_id', $id)->get();
-            return ['status' => ResponseStatus::SUCCESS, 'message' => 'Orders successfully found for user ' . $id, 'data' => $orders];
+            return $this->responseStatus(ResponseStatus::SUCCESS, 'Orders successfully found for user ' . $id, $orders);
         } catch (Throwable $error) {
-            return ['status' => ResponseStatus::ERROR, 'message' => 'Orders could not be retrieved at this time', 'error' => $error->getMessage()];
+            return $this->responseStatus(ResponseStatus::ERROR, $error->getMessage());
         }
     }
 
-    public function show($id): array
+    public function show($id): JsonResponse
     {
         try {
             $order = Order::find($id);
-            if($order) {
-                return ['status' => ResponseStatus::SUCCESS, 'message' => 'Order successfully found', 'data' => $order];
+            if ($order) {
+                return $this->responseStatus(ResponseStatus::SUCCESS, 'Order found', $order);
             } else {
-                return ['status' => ResponseStatus::FAILED, 'message' => 'Unable to locate order'];
+                return $this->responseStatus(ResponseStatus::FAILED, 'Unable to locate order');
             }
         } catch (Throwable $error) {
-            return ['status' => ResponseStatus::ERROR, 'message' => $error->getMessage()];
+            return $this->responseStatus(ResponseStatus::ERROR, $error->getMessage());
         }
     }
 
-    public function delete($id): array
+    public function delete($id): JsonResponse
     {
         try {
-            $order = Order::find($id)->delete();
-            return ['status' => ResponseStatus::SUCCESS, 'message' => 'Order successfully found'];
+            Order::find($id)->delete();
+            return $this->responseStatus(ResponseStatus::SUCCESS, 'Order successfully found');
         } catch (Throwable $error) {
-            return ['status' => ResponseStatus::ERROR, 'message' => $error->getMessage()];
+            return $this->responseStatus(ResponseStatus::ERROR, $error->getMessage());
         }
     }
 }

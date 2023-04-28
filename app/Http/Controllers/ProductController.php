@@ -6,10 +6,13 @@ use App\Models\Product;
 use Exception;
 use Illuminate\Http\Request;
 use App\Enums\ResponseStatus;
+use App\Traits\HasResponseStatus;
 use Throwable;
 
 class ProductController extends Controller
 {
+    use HasResponseStatus;
+
     public function create(Request $request): array {
         $request->validate([
             'name' => 'required|max:255',

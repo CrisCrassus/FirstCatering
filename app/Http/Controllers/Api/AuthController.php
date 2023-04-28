@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Card;
 use App\Traits\HasResponseStatus;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -18,7 +19,7 @@ class AuthController extends Controller
 
     use HasResponseStatus;
 
-    public function create(Request $request)
+    public function create(Request $request): JsonResponse
     {
         try {
             $request->validate([
@@ -28,6 +29,7 @@ class AuthController extends Controller
                 'password' => 'required',
                 'mobile' => 'required',
                 'company_id' => 'required|integer',
+                'role_id' => 'required|integer'
             ]);
 
             $user = User::create([
@@ -38,17 +40,17 @@ class AuthController extends Controller
                 'mobile' => $request->mobile,
                 'company_id' => $request->company_id,
                 'balance' => isset($request->balance) ? $request->balance : 0,
+                'role_id' => $request->role_id,
                 'pin' => mt_rand(1000, 9999),
             ]);
 
-            return $this->responseStatus(ResponseStatus::SUCCESS, 'User Created Successfully', ['token' => $user->createToken("API TOKEN")->plainTextToken]);
-
+            return $this->responseStatus(ResponseStatus::SUCCESS, 'User Created Successfully', ['token' => $user->createToken("API TOKEN")->plainTextToken, 'data' => $user]);
         } catch (\Throwable $error) {
             return $this->responseStatus(ResponseStatus::ERROR, $error->getMessage());
         }
     }
 
-    public function login(Request $request)
+    public function login(Request $request): JsonResponse
     {
         try {
             $request->validate([
@@ -57,27 +59,26 @@ class AuthController extends Controller
 
             $card = Card::where('identifier', $request['identifier'])->first();
 
-            if(!$card) {
+            if (!$card) {
                 return $this->responseStatus(ResponseStatus::FAILED, 'Unable to locate card');
             }
 
             $user = $card->user()->first('id');
 
-            if(!$user) {
+            if (!$user) {
                 return $this->responseStatus(ResponseStatus::FAILED, 'Unable to locate user for card ' . $card->identifier);
             }
 
-            if($user) {
+            if ($user) {
                 return $this->responseStatus(ResponseStatus::SUCCESS, 'User located', $user);
                 // return ['status' => ResponseStatus::SUCCESS, 'message' => 'User located', 'data' => $user];
             }
-
         } catch (Throwable $error) {
             return $this->responseStatus(ResponseStatus::ERROR, $error->getMessage(), ['location' => 'App\Http\Controllers\API\AuthController@login']);
         }
     }
 
-    public function pinVerification(Request $request): array
+    public function pinVerification(Request $request): JsonResponse
     {
         try {
             $request->validate([
@@ -87,20 +88,19 @@ class AuthController extends Controller
 
             $user = User::find($request->id);
 
-            if(!$user) {
-                return ['status' => ResponseStatus::FAILED, 'message' => 'Unable to locate user'];
+            if (!$user) {
+                return $this->responseStatus(ResponseStatus::FAILED, 'Unable to locate user');
             }
 
             $rs = $user->validatePIN($request->pin);
 
-            return ['status' => $rs['status'], 'message' => $rs['message'], 'token' => isset($rs['token']) ? $rs['token'] : null, 'data' => $rs['data']];
-
+            return $this->responseStatus($rs['status'], $rs['message'], ['token' => isset($rs['token']) ? $rs['token'] : null, 'data' => $rs['data']]);
         } catch (Throwable $error) {
-            return ['status' => ResponseStatus::ERROR, 'location' => 'App\Http\Controllers\API\AuthController@pinVerification', 'message' => $error->getMessage()];
+            return $this->responseStatus(ResponseStatus::ERROR, $error->getMessage(), ['location' => 'App\Http\Controllers\API\AuthController@pinVerification']);
         }
     }
 
-    public function logout(Request $request): array
+    public function logout(Request $request): JsonResponse
     {
         try {
             $request->validate([
@@ -109,16 +109,15 @@ class AuthController extends Controller
 
             $user = User::find($request->id);
 
-            if(!$user) {
-                return ['status' => ResponseStatus::FAILED, 'message' => 'Unable to locate user'];
+            if (!$user) {
+                return $this->responseStatus(ResponseStatus::FAILED, 'Unable to locate user');
             }
 
             $user->tokens()->delete();
 
-            return ['status' => ResponseStatus::SUCCESS, 'message' => 'User\'s tokens removed from system'];
-
+            return $this->responseStatus(ResponseStatus::SUCCESS, 'User\'s tokens removed from system');
         } catch (Throwable $error) {
-            return ['status' => ResponseStatus::ERROR, 'location' => 'App\Http\Controllers\API\AuthController@logout', 'message' => $error->getMessage()];
+            return $this->responseStatus(ResponseStatus::ERROR, $error->getMessage(), ['location' => 'App\Http\Controllers\API\AuthController@logout']);
         }
     }
 
@@ -130,7 +129,7 @@ class AuthController extends Controller
                 'password' => 'required'
             ]);
 
-            if(!Auth::attempt($request->only(['email', 'password']))){
+            if (!Auth::attempt($request->only(['email', 'password']))) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Email & Password does not match with our record.',
@@ -144,7 +143,6 @@ class AuthController extends Controller
                 'message' => 'User Logged In Successfully',
                 'token' => $user->createToken("API TOKEN")->plainTextToken
             ], 200);
-
         } catch (\Throwable $th) {
             return response()->json([
                 'status' => false,
