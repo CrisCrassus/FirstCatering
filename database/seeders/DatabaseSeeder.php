@@ -27,27 +27,27 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         TransactionType::create([
-            'type' => TransactionTypes::PURCHASE,
+            'type' => TransactionTypes::PURCHASE->value,
         ]);
 
         TransactionType::create([
-            'type' => TransactionTypes::TOPUP,
+            'type' => TransactionTypes::TOPUP->value,
         ]);
 
         CardType::create([
-            'type' => CardTypes::EXISTING,
+            'type' => CardTypes::EXISTING->value,
         ]);
 
         CardType::create([
-            'type' => CardTypes::STANDARD,
+            'type' => CardTypes::STANDARD->value,
         ]);
 
         Role::create([
-            'type' => Roles::ADMIN,
+            'title' => Roles::ADMIN->value,
         ]);
 
         Role::create([
-            'type' => Roles::STANDARD,
+            'title' => Roles::STANDARD->value,
         ]);
 
         User::factory(5)->create();
